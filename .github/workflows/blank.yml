@@ -5,6 +5,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: عرض الملفات وإنشاء المانيفست عند غيابه
+        run: |
+          echo "=== files ==="
+          find . -path ./.git -prune -o -type f -print | sort | head -60
+          mkdir -p app/src/main
+          if [ ! -s app/src/main/AndroidManifest.xml ]; then
+            echo "MANIFEST MISSING - creating"
+            printf '%s' '<manifest xmlns:android="http://schemas.android.com/apk/res/android"><uses-permission android:name="android.permission.INTERNET"/><application android:label="TaqniMac" android:usesCleartextTraffic="true" android:icon="@android:drawable/ic_media_play" android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"><activity android:name=".MainActivity" android:exported="true" android:configChanges="orientation|screenSize|keyboardHidden"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/><category android:name="android.intent.category.LEANBACK_LAUNCHER"/></intent-filter></activity><activity android:name=".PlayerActivity" android:configChanges="orientation|screenSize|keyboardHidden"/></application></manifest>' > app/src/main/AndroidManifest.xml
+          fi
       - run: test -s app/src/main/assets/index.html
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: 17}
