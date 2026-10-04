@@ -1,7 +1,9 @@
 package com.taqni.mac
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.app.UiModeManager
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
@@ -49,13 +51,23 @@ class MainActivity : Activity() {
     web = WebView(this); setContentView(web)
     web.settings.javaScriptEnabled = true
     web.settings.domStorageEnabled = true
+    web.isFocusable = true
+    web.isFocusableInTouchMode = true
+    WebView.setWebContentsDebuggingEnabled(true)
     web.addJavascriptInterface(Bridge(), "Native")
     web.webChromeClient = WebChromeClient()
+
+    val tv = (getSystemService(UI_MODE_SERVICE) as UiModeManager).currentModeType == Configuration.UI_MODE_TYPE_TELEVISION ||
+      !packageManager.hasSystemFeature("android.hardware.touchscreen")
+    val tvJs = if (tv) "localStorage.setItem('ms_tvauto','1');" else ""
+    val err = "window.addEventListener('error',function(e){var d=document.createElement('div');d.style.cssText='position:fixed;top:0;left:0;right:0;z-index:999999;background:#900;color:#fff;font:12px monospace;padding:6px;direction:ltr';d.textContent='JS: '+e.message+' @'+e.lineno;(document.body||document.documentElement).appendChild(d)});"
+    val head = "<script>" + err + "try{" + tvJs + "var c=JSON.parse(localStorage.getItem('ms_cfg')||'{}');if(!c.w){c.w='https://native.local';c.k='native';localStorage.setItem('ms_cfg',JSON.stringify(c))}}catch(e){}</script>"
+
     val html = assets.open("index.html").bufferedReader().readText()
     val shim = assets.open("shim.js").bufferedReader().readText()
-    val head = "<script>try{var c=JSON.parse(localStorage.getItem('ms_cfg')||'{}');if(!c.w){c.w='https://native.local';c.k='native';localStorage.setItem('ms_cfg',JSON.stringify(c))}}catch(e){}</script>"
     val out = html.replace("<head>", "<head>" + head).replace("</body>", "<script>" + shim + "</script></body>")
     web.loadDataWithBaseURL("https://app.local/", out, "text/html", "UTF-8", null)
+    web.requestFocus()
   }
 
   override fun onBackPressed() { if (web.canGoBack()) web.goBack() else finish() }
